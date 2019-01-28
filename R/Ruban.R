@@ -5,20 +5,6 @@
 #'
 NULL
 
-#' Use of nuclear function
-#'
-#' The choice is made at the discretion of the user
-#'
-#' @param z value
-#' @param x choice of nuclear function
-#' @param r nuclear function parameter
-#' @param s nuclear function parameter
-#' @return result of nuclear function
-#' @export
-#' @examples
-#' z <- 5
-#' x <- nuclearFunction(z)
-#' print(z)
 nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
   if (all.equal(z, as.double(z), check.attributes = FALSE) != TRUE
       || is.nan(z)

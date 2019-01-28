@@ -6,13 +6,13 @@
 \alias{Ruban-package}
 \title{Ruban: package allows you to use the algorithm for finding global extrema by averaging coordinates}
 \usage{
-Ruban(x, deltaX, f, lower, upper, n = 500, e = 0.001, M = 1000,
+Ruban(x, delta, f, lower, upper, n = 500, e = 0.001, M = 1000,
   y = 1, q = 2, nuclear_function = 1, r = 2, s = 100)
 }
 \arguments{
 \item{x}{starting point coordinate}
 
-\item{deltaX}{increment x denotes search range}
+\item{delta}{increment x denotes search range}
 
 \item{f}{search function}
 
@@ -56,7 +56,7 @@ z<-c(z, 6*(abs(x[1]+6))^0.6 + 6*(abs(x[2]-6)^0.9))
 return(min(z))
 }
 x<-Ruban(x=c(10,10),
-deltaX=c(20,20),
+delta=c(20,20),
 lower=c(-10,-10),
 upper = c(30,30),
 f = f,
