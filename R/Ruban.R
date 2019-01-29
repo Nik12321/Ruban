@@ -142,6 +142,25 @@ Ruban <- function(x,
   all_x <- matrix(0, M, length(x))
   all_x[1, ] <- x
   all_results <- f(x)
+
+  all_col <- create_col_in_data_frame(length(x))
+  result_obj <- simple_result(iterations = 0,
+                         all_x = data.frame(Iteration = 0,  all_col, stringsAsFactors=FALSE),
+                         all_delta = data.frame(Iteration = 0,  all_col, stringsAsFactors=FALSE),
+                         x = x,
+                         delta = delta,
+                         lower = lower,
+                         upper = upper,
+                         n = n,
+                         e = e,
+                         M = M,
+                         y = y,
+                         q = q,
+                         nuclear_function = nuclear_function,
+                         r = r,
+                         s = s
+  )
+
   while (k < M) {
     for (i in 1:n) {
       for (j in 1:length(x))
@@ -178,6 +197,8 @@ Ruban <- function(x,
         (abs(u_values[x, i]) ^ (q)) * p_norm[x]
         }
         ))) ^ (1 / q))
+    result_obj@all_x = rbind(result_obj@all_x, add_new_row(k, x))
+    result_obj@all_delta = rbind(result_obj@all_delta, add_new_row(k, delta))
     k <- k + 1
     all_x[k, ] <- x
     all_results <- c(all_results, f(x))
@@ -185,25 +206,74 @@ Ruban <- function(x,
     if (flag == TRUE)
       break
   }
-  return(all_x[which.min(all_results), ])
+  result_obj@iterations = k
+  result_obj@results = all_x[which.min(all_results), ]
+  return(result_obj)
 }
 
-testOnNaN <- function(value) {
-  value <- sapply(value, function(x) {
-    !is.nan(x)
-    })
-  for (i in 1:length(value))
-    if (value[i] != TRUE) {
-      return(TRUE)
-    }
-  return(FALSE)
+create_col_in_data_frame <- function(ncols) {
+  all_col <- vector("list", ncols)
+  for (i in 1:ncols) {
+    value <- paste0("x",i)
+    all_col[i] <- value
+  }
+  return(all_col)
 }
 
-testOnUncorrentUpperAndBound <- function(lower, upper) {
-  value <- lower > upper
-  for (i in 1:length(value))
-    if (value[i] == TRUE) {
-      return(TRUE)
-    }
-  return(FALSE)
+add_new_row <- function(k, x) {
+  new_col <- vector("list", length(x) + 1)
+  new_col[1] <- k
+  for (i in 2:(length(x) + 1)) {
+    new_col[i] <- x[i-1]
+  }
+  return(new_col)
 }
+
+simple_result <- methods::setClass("simple_result", slots = c(iterations = "numeric",
+                                                              x = "numeric",
+                                                              delta = "numeric",
+                                                              lower = "numeric",
+                                                              upper = "numeric",
+                                                              n = "numeric",
+                                                              e = "numeric",
+                                                              M = "numeric",
+                                                              y = "numeric",
+                                                              q = "numeric",
+                                                              nuclear_function = "numeric",
+                                                              r = "numeric",
+                                                              s = "numeric",
+                                                              all_x = "data.frame",
+                                                              all_delta = "data.frame",
+                                                              results = "numeric"
+                                                              ),
+                                   package = "Ruban")
+
+setMethod("summary", "simple_result",
+          function(object)
+          {
+            cat(cli::rule(left = crayon::bold("Rouban Algorithm"),
+                          width = min(getOption("width"),40)), "\n\n")
+            cat("+-----------------------------------+\n")
+            cat("|               Rouban              |\n")
+            cat("+-----------------------------------+\n\n")
+            cat(cli::rule(left = crayon::bold("Algorithm settings"),
+                          width = min(getOption("width"),40)), "\n")
+            cat("Starting point               = ", object@x, "\n")
+            cat("Increment                    = ", object@delta, "\n")
+            cat("Lower bound                  = ", object@lower, "\n")
+            cat("Upper bound                  = ", object@upper, "\n")
+            cat("Accuracy                     = ", object@e, "\n")
+            cat("Max.iterations               = ", object@M, "\n")
+            cat("y                            = ", object@y, "\n")
+            cat("q                            = ", object@q, "\n")
+            cat("Selected nuclear function    = ", object@nuclear_function, "\n")
+            cat("r                            = ", object@r, "\n")
+            cat("s                            = ", object@s, "\n")
+            cat("+-----------------------------------+\n\n")
+            cat(cli::rule(left = crayon::bold("Results"),
+                          width = min(getOption("width"),40)), "\n")
+            cat("Iterations                   =", object@iterations,  "\n")
+            cat("Fitness function value       =", object@results,  "\n")
+          }
+)
+
