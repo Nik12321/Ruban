@@ -1,6 +1,6 @@
-Package: Ruban
+Package: Rouban
 Title: Global minimum / maximum search using coordinate averaging method
-Version: 0.0.3
+Version: 0.0.4
 Authors@R: person("Nikita", "Timofeev", email = "crashik11@yandex.ru", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.1.1)

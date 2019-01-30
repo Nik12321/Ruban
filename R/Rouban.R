@@ -1,6 +1,6 @@
-#' Ruban: package allows you to use the algorithm for finding global extrema by averaging coordinates
+#' Rouban: package allows you to use the algorithm for finding global extrema by averaging coordinates
 #'
-#' @name Ruban
+#' @name Rouban
 #' @docType package
 #'
 NULL
@@ -50,9 +50,9 @@ nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
 #' @param n amount of points
 #' @param e precision constant
 #' @param M maximum number of iterations
-#' @param y parameter of Ruban's algorithm
-#' @param q parameter of Ruban's algorithm
-#' @param nuclear_function choice of nuclear function
+#' @param y parameter of Rouban's algorithm
+#' @param q parameter of Rouban's algorithm
+#' @param nuclearType type of nuclear function
 #' @param r parameter for nuclear function
 #' @param s parameter for nuclear function
 #' @return numeric the estimated amount of good honey
@@ -68,7 +68,7 @@ nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
 #' z<-c(z, 6*(abs(x[1]+6))^0.6 + 6*(abs(x[2]-6)^0.9))
 #' return(min(z))
 #' }
-#' x<-Ruban(x=c(10,10),
+#' x<-Rouban(x=c(10,10),
 #' delta=c(20,20),
 #' lower=c(-10,-10),
 #' upper = c(30,30),
@@ -79,9 +79,9 @@ nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
 #' s=100,
 #' e=0.0001,
 #' r=2,
-#' nuclear_function = 1)
+#' nuclearType = 1)
 #' print(x)
-Ruban <- function(x,
+Rouban <- function(x,
                   delta,
                   f,
                   lower,
@@ -91,7 +91,7 @@ Ruban <- function(x,
                   M = 1000,
                   y = 1,
                   q = 2,
-                  nuclear_function = 1,
+                  nuclearType = 1,
                   r = 2,
                   s = 100) {
   if (all.equal(x, as.double(x), check.attributes = FALSE) != TRUE
@@ -134,19 +134,19 @@ Ruban <- function(x,
   if (testOnUncorrentUpperAndBound(lower, upper))
     stop("Error, your value of lower vector > than value of upper vector")
   k <- 1
-  test_x <- matrix(0, n, length(x))
-  f_values <- rep(0, n)
-  u_values <- matrix(0, n, length(x))
+  testX <- matrix(0, n, length(x))
+  fValues <- rep(0, n)
+  uValues <- matrix(0, n, length(x))
   p <- rep(0, n)
-  p_norm <- rep(0, n)
-  all_x <- matrix(0, M, length(x))
-  all_x[1, ] <- x
-  all_results <- f(x)
+  pNorm <- rep(0, n)
+  allX <- matrix(0, M, length(x))
+  allX[1, ] <- x
+  allResults <- f(x)
 
-  all_col <- create_col_in_data_frame(length(x))
-  result_obj <- simple_result(iterations = 0,
-                         all_x = data.frame(Iteration = 0,  all_col, stringsAsFactors=FALSE),
-                         all_delta = data.frame(Iteration = 0,  all_col, stringsAsFactors=FALSE),
+  cols <- createColForDF(length(x))
+  resultObj  <- sResult(iterations = 0,
+                         allX = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
+                         allDelta = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
                          x = x,
                          delta = delta,
                          lower = lower,
@@ -156,7 +156,7 @@ Ruban <- function(x,
                          M = M,
                          y = y,
                          q = q,
-                         nuclear_function = nuclear_function,
+                         nuclearType = nuclearType,
                          r = r,
                          s = s
   )
@@ -164,23 +164,23 @@ Ruban <- function(x,
   while (k < M) {
     for (i in 1:n) {
       for (j in 1:length(x))
-        u_values[i, j] <- stats::runif(1, 0, 1) * 2 - 1
-      test_x[i, ] <- x + delta * u_values[i, ]
-      f_values[i] <- f(test_x[i, ])
+        uValues[i, j] <- stats::runif(1, 0, 1) * 2 - 1
+      testX[i, ] <- x + delta * uValues[i, ]
+      fValues[i] <- f(testX[i, ])
     }
     gmin <- rep(0, n)
     for (i in 1:n) {
-      a <- f_values[i] - min(f_values)
-      b <- max(f_values) - min(f_values)
+      a <- fValues[i] - min(fValues)
+      b <- max(fValues) - min(fValues)
       gmin[i] <- a / b
     }
     for (i in 1:n)
-      p[i] <- nuclearFunction(x = nuclear_function, z = gmin[i], r = r, s = s)
+      p[i] <- nuclearFunction(x = nuclearType, z = gmin[i], r = r, s = s)
     for (i in 1:n)
-      p_norm[i] <- p[i] / sum(p)
+      pNorm[i] <- p[i] / sum(p)
     for (i in 1:length(x))
       x[i] <- x[i] + delta[i] * sum(sapply(1:n, function(x) {
-        u_values[x, i] * p_norm[x]
+        uValues[x, i] * pNorm[x]
         }))
     for (i in 1:length(x)) {
       if (x[i] < lower[i])
@@ -194,33 +194,33 @@ Ruban <- function(x,
     }
     for (i in 1:length(x))
       delta[i] <- y * delta[i] * ( (sum(sapply(1:n, function(x) {
-        (abs(u_values[x, i]) ^ (q)) * p_norm[x]
+        (abs(uValues[x, i]) ^ (q)) * pNorm[x]
         }
         ))) ^ (1 / q))
-    result_obj@all_x = rbind(result_obj@all_x, add_new_row(k, x))
-    result_obj@all_delta = rbind(result_obj@all_delta, add_new_row(k, delta))
+    resultObj @allX = rbind(resultObj @allX, addRowForDF(k, x))
+    resultObj @allDelta = rbind(resultObj @allDelta, addRowForDF(k, delta))
     k <- k + 1
-    all_x[k, ] <- x
-    all_results <- c(all_results, f(x))
+    allX[k, ] <- x
+    allResults <- c(allResults, f(x))
     flag <- (max(delta) <= e)
     if (flag == TRUE)
       break
   }
-  result_obj@iterations = k
-  result_obj@results = all_x[which.min(all_results), ]
-  return(result_obj)
+  resultObj @iterations = k
+  resultObj @results = allX[which.min(allResults), ]
+  return(resultObj )
 }
 
-create_col_in_data_frame <- function(ncols) {
-  all_col <- vector("list", ncols)
+createColForDF <- function(ncols) {
+  cols <- vector("list", ncols)
   for (i in 1:ncols) {
     value <- paste0("x",i)
-    all_col[i] <- value
+    cols[i] <- value
   }
-  return(all_col)
+  return(cols)
 }
 
-add_new_row <- function(k, x) {
+addRowForDF <- function(k, x) {
   new_col <- vector("list", length(x) + 1)
   new_col[1] <- k
   for (i in 2:(length(x) + 1)) {
@@ -229,7 +229,7 @@ add_new_row <- function(k, x) {
   return(new_col)
 }
 
-simple_result <- methods::setClass("simple_result", slots = c(iterations = "numeric",
+sResult <- methods::setClass("sResult", slots = c(iterations = "numeric",
                                                               x = "numeric",
                                                               delta = "numeric",
                                                               lower = "numeric",
@@ -239,16 +239,16 @@ simple_result <- methods::setClass("simple_result", slots = c(iterations = "nume
                                                               M = "numeric",
                                                               y = "numeric",
                                                               q = "numeric",
-                                                              nuclear_function = "numeric",
+                                                              nuclearType = "numeric",
                                                               r = "numeric",
                                                               s = "numeric",
-                                                              all_x = "data.frame",
-                                                              all_delta = "data.frame",
+                                                              allX = "data.frame",
+                                                              allDelta = "data.frame",
                                                               results = "numeric"
                                                               ),
-                                   package = "Ruban")
+                                   package = "Rouban")
 
-setMethod("summary", "simple_result",
+setMethod("summary", "sResult",
           function(object)
           {
             cat(cli::rule(left = crayon::bold("Rouban Algorithm"),
@@ -266,7 +266,7 @@ setMethod("summary", "simple_result",
             cat("Max.iterations               = ", object@M, "\n")
             cat("y                            = ", object@y, "\n")
             cat("q                            = ", object@q, "\n")
-            cat("Selected nuclear function    = ", object@nuclear_function, "\n")
+            cat("Selected nuclear function    = ", object@nuclearType, "\n")
             cat("r                            = ", object@r, "\n")
             cat("s                            = ", object@s, "\n")
             cat("+-----------------------------------+\n\n")

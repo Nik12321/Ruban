@@ -1,3 +1,5 @@
-# Ruban 0.0.3
+# Rouban 0.0.3
 * Rewritten method. Now it works using objects.
 * Redefined method "summary(x)", that displays the result of the work on the screen
+# Rouban 0.0.4
+* Changed code style
