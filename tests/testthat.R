@@ -1,4 +1,4 @@
 library(testthat)
-library(Ruban)
+library(Rouban)
 
-test_check("Ruban")
+test_check("Rouban")

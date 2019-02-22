@@ -1,61 +1,32 @@
-#' Rouban: package allows you to use the algorithm for finding global extrema by averaging coordinates
+#' Rouban: package for finding global extrema global optimization method based on the selective averaging coordinate  with restrictions.
 #'
 #' @name Rouban
 #' @docType package
 #'
 NULL
 
-nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
-  if (all.equal(z, as.double(z), check.attributes = FALSE) != TRUE
-      || is.nan(z)
-      || length(z) != 1)
-    stop("Incorrect value of z. z must be double value")
-  if (all.equal(s, as.double(s), check.attributes = FALSE) != TRUE
-      || s < 0
-      || is.nan(s)
-      || length(s) != 1)
-    stop("Error, expected s is double and s >= 0")
-  if (all.equal(r, as.integer(r), check.attributes = FALSE) != TRUE
-      || r < 1
-      || is.nan(r)
-      || length(r) != 1)
-    stop("Error, expected r is integer and r > 0")
-  if (all.equal(x, as.integer(x), check.attributes = FALSE) != TRUE
-      || x < 1
-      || x > 4
-      || is.nan(x)
-      || length(x) != 1) {
-    warning("you choose incorrect number of nuclear function.
-            Choose default value: 1")
-    x <- 1
-  }
-  if (x == 1)
-    p <- (1 - (z ^ r)) ^ s
-  else if (x == 2)
-    p <- exp(-s * (z ^ r))
-  else if (x == 3)
-    p <- 1 / (s * (z ^ r) + 1)
-  else if (x == 4)
-    p <- 1 / (z ^ s)
-  return(p)
-}
+##--------------------------------------------------------------------##
+##                      Global optimization method                    ##
+##                              based on                              ##
+##     the selective averaging coordinate  with restrictions          ##
+##--------------------------------------------------------------------##
 
-#' Search for extremum value using coordinate averaging method
+#' Search for extremum value using global optimization method based on the selective averaging coordinate  with restrictions.
 #'
 #' @param x starting point coordinate
 #' @param delta increment x denotes search range
-#' @param f search function
+#' @param fitness function to search for extremum
 #' @param lower lower extremum limits
 #' @param upper upper extremum limits
-#' @param n amount of points
+#' @param n amount of test points
 #' @param e precision constant
 #' @param M maximum number of iterations
-#' @param y parameter of Rouban's algorithm
-#' @param q parameter of Rouban's algorithm
-#' @param nuclearType type of nuclear function
-#' @param r parameter for nuclear function
-#' @param s parameter for nuclear function
-#' @return numeric the estimated amount of good honey
+#' @param y stretch factor
+#' @param q matched fixed parameter
+#' @param kernelType type of kernel function
+#' @param r matched fixed parameter
+#' @param s core selectivity factor
+#' @return potential point extremum
 #' @export
 #' @examples
 #' f<-function(x) {
@@ -72,18 +43,18 @@ nuclearFunction <- function(z, x = 1, r = 2, s = 3) {
 #' delta=c(20,20),
 #' lower=c(-10,-10),
 #' upper = c(30,30),
-#' f = f,
+#' fitness = f,
 #' n=500,
 #' y=1,
 #' q=2,
 #' s=100,
 #' e=0.0001,
 #' r=2,
-#' nuclearType = 1)
-#' print(x)
+#' kernelType = "kernelExponential")
+#' summary(x)
 Rouban <- function(x,
                   delta,
-                  f,
+                  fitness,
                   lower,
                   upper,
                   n = 500,
@@ -91,7 +62,7 @@ Rouban <- function(x,
                   M = 1000,
                   y = 1,
                   q = 2,
-                  nuclearType = 1,
+                  kernelType = "kernelExponential",
                   r = 2,
                   s = 100) {
   if (all.equal(x, as.double(x), check.attributes = FALSE) != TRUE
@@ -133,6 +104,17 @@ Rouban <- function(x,
     stop("Error, expected e is double and e > 0")
   if (testOnUncorrentUpperAndBound(lower, upper))
     stop("Error, your value of lower vector > than value of upper vector")
+  if (all.equal(s, as.double(s), check.attributes = FALSE) != TRUE
+      || s < 0
+      || is.nan(s)
+      || length(s) != 1)
+    stop("Error, expected s is double and s >= 0")
+  if (all.equal(r, as.integer(r), check.attributes = FALSE) != TRUE
+      || r < 1
+      || is.nan(r)
+      || length(r) != 1)
+    stop("Error, expected r is integer and r > 0")
+
   k <- 1
   testX <- matrix(0, n, length(x))
   fValues <- rep(0, n)
@@ -141,7 +123,7 @@ Rouban <- function(x,
   pNorm <- rep(0, n)
   allX <- matrix(0, M, length(x))
   allX[1, ] <- x
-  allResults <- f(x)
+  allResults <- fitness(x)
 
   cols <- createColForDF(length(x))
   resultObj  <- sResult(iterations = 0,
@@ -156,17 +138,32 @@ Rouban <- function(x,
                          M = M,
                          y = y,
                          q = q,
-                         nuclearType = nuclearType,
+                         kernelType = kernelType,
                          r = r,
                          s = s
   )
-
+  if (kernelType == "kernelExponential" ||
+      kernelType == "kernelHyperbolic" ||
+      kernelType == "kernelToDegreeS" ||
+      kernelType == "kernelExpHyperbolic")
+    kernelFunction <- get(kernelType)
+  else
+    kernelFunction <- get("kernelExponential")
   while (k < M) {
     for (i in 1:n) {
-      for (j in 1:length(x))
-        uValues[i, j] <- stats::runif(1, 0, 1) * 2 - 1
+      for (j in 1:length(x)) {
+        if (x[j] - delta[j] < lower[j])
+          a <- (((lower[j] - x[j]) / delta[j]) + 1) / 2
+        else
+          a <- 0
+        if (x[j] + delta[j] > upper[j])
+          b <- (((upper[j] - x[j]) / delta[j]) + 1) / 2
+        else
+          b <- 1
+        uValues[i, j] <- stats::runif(1, a, b) * 2 - 1
+      }
       testX[i, ] <- x + delta * uValues[i, ]
-      fValues[i] <- f(testX[i, ])
+      fValues[i] <- fitness(testX[i, ])
     }
     gmin <- rep(0, n)
     for (i in 1:n) {
@@ -175,23 +172,13 @@ Rouban <- function(x,
       gmin[i] <- a / b
     }
     for (i in 1:n)
-      p[i] <- nuclearFunction(x = nuclearType, z = gmin[i], r = r, s = s)
+      p[i] <- kernelFunction(z = gmin[i], r = r, s = s)
     for (i in 1:n)
       pNorm[i] <- p[i] / sum(p)
     for (i in 1:length(x))
       x[i] <- x[i] + delta[i] * sum(sapply(1:n, function(x) {
         uValues[x, i] * pNorm[x]
         }))
-    for (i in 1:length(x)) {
-      if (x[i] < lower[i])
-        x[i] <- lower[i]
-      if (x[i] < lower[i])
-        x[i] <- lower[i]
-      if (x[i] > upper[i])
-        x[i] <- upper[i]
-      if (x[i] > upper[i])
-        x[i] <- upper[i]
-    }
     for (i in 1:length(x))
       delta[i] <- y * delta[i] * ( (sum(sapply(1:n, function(x) {
         (abs(uValues[x, i]) ^ (q)) * pNorm[x]
@@ -201,13 +188,14 @@ Rouban <- function(x,
     resultObj @allDelta = rbind(resultObj @allDelta, addRowForDF(k, delta))
     k <- k + 1
     allX[k, ] <- x
-    allResults <- c(allResults, f(x))
+    allResults <- c(allResults, fitness(x))
     flag <- (max(delta) <= e)
     if (flag == TRUE)
       break
   }
-  resultObj @iterations = k
-  resultObj @results = allX[which.min(allResults), ]
+  resultObj @iterations <- k
+  resultObj @extremePoint <- allX[which.min(allResults), ]
+  resultObj @fitnessValue <- allResults[which.min(allResults)]
   return(resultObj )
 }
 
@@ -239,12 +227,13 @@ sResult <- methods::setClass("sResult", slots = c(iterations = "numeric",
                                                               M = "numeric",
                                                               y = "numeric",
                                                               q = "numeric",
-                                                              nuclearType = "numeric",
+                                                              kernelType = "character",
                                                               r = "numeric",
                                                               s = "numeric",
                                                               allX = "data.frame",
                                                               allDelta = "data.frame",
-                                                              results = "numeric"
+                                                              fitnessValue = "numeric",
+                                                              extremePoint = "numeric"
                                                               ),
                                    package = "Rouban")
 
@@ -266,14 +255,30 @@ setMethod("summary", "sResult",
             cat("Max.iterations               = ", object@M, "\n")
             cat("y                            = ", object@y, "\n")
             cat("q                            = ", object@q, "\n")
-            cat("Selected nuclear function    = ", object@nuclearType, "\n")
+            cat("Selected kernel function     = ", object@kernelType, "\n")
             cat("r                            = ", object@r, "\n")
             cat("s                            = ", object@s, "\n")
             cat("+-----------------------------------+\n\n")
+            cat(cli::rule(left = crayon::bold("Progress"),
+                          width = min(getOption("width"),40)), "\n")
+            for (i in 2:nrow(object@allX)) {
+              cat(cli::rule(left = crayon::bold("Iteration", (i-1)),
+                            width = min(getOption("width"),40)), ":\nFound point: ", as.numeric(x@allX[i,2:length(x@allX)]), "\nNew increment:", as.numeric(x@allDelta[i,2:length(x@allX)]),  "\n")
+            }
+            cat("+-----------------------------------+\n")
             cat(cli::rule(left = crayon::bold("Results"),
                           width = min(getOption("width"),40)), "\n")
             cat("Iterations                   =", object@iterations,  "\n")
-            cat("Fitness function value       =", object@results,  "\n")
+            cat("Fitness function value       =", object@fitnessValue,  "\n")
+            cat("Extreme Point                =", object@extremePoint,  "\n")
           }
 )
 
+setMethod("print", "sResult", function(x, ...) utils::str(x))
+
+setMethod("show", "sResult",
+          function(object)
+          { cat("An object of class \"sResult\"\n")
+            cat("Available slots:\n")
+            print(slotNames(object))
+          })
