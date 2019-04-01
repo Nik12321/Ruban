@@ -1,7 +1,7 @@
-
 ##--------------------------------------------------------------------##
 ##                          Function for the                          ##
 ##                  selection of optimal parameters                   ##
+##                        for Rouban function                         ##
 ##--------------------------------------------------------------------##
 
 #' Search for extremum value using global optimization method based on the selective averaging coordinate  with restrictions.
