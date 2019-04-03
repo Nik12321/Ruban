@@ -140,7 +140,8 @@ Rouban <- function(x,
                          q = q,
                          kernelType = kernelType,
                          r = r,
-                         s = s
+                         s = s,
+                         func = fitness
   )
   if (kernelType == "kernelExponential" ||
       kernelType == "kernelHyperbolic" ||
@@ -233,7 +234,8 @@ sResult <- methods::setClass("sResult", slots = c(iterations = "numeric",
                                                               allX = "data.frame",
                                                               allDelta = "data.frame",
                                                               fitnessValue = "numeric",
-                                                              extremePoint = "numeric"
+                                                              extremePoint = "numeric",
+                                                              func = 'function'
                                                               ),
                                    package = "Rouban")
 
@@ -282,3 +284,70 @@ setMethod("show", "sResult",
             cat("Available slots:\n")
             print(slotNames(object))
           })
+
+plotRouban = function(rouban) {
+  x = rouban@allX[2:nrow(rouban@allX), 2:ncol(rouban@allX) ]
+  dx = rouban@allDelta[2:nrow(rouban@allDelta), 2:ncol(rouban@allDelta) ]
+  f = rouban@func
+
+  p1 = plot_ly(type="scatter", mode="lines", x=1:length(x[, 1]), y=as.numeric(x[, 1]), name="x_1")
+  p2 = plot_ly(type="scatter", mode="lines", x=1:length(dx[, 1]), y=as.numeric(dx[, 1]), name="dx_1")
+  if(ncol(dx) >= 2)
+    for(i in 2:ncol(x)) {
+      p1 = add_trace(p=p1, type="scatter", mode="lines" , name=paste0("x_", i),
+                     x=1:length(x[, i]), y=as.numeric(x[, i]))
+      p2 = add_trace(p=p2, type="scatter", mode="lines", name=paste0("dx_", i),
+                     x=1:length(dx[, i]), y=as.numeric(dx[, i]))
+
+    }
+
+  # printing y trace
+  y = c()
+  for (i in 1:nrow(x)) {
+    y = c(y, f(as.numeric(x[i, ])))
+  }
+  p3 = plot_ly(type="scatter", mode="lines", x=1:length(x[, 1]), y=y, name="min")
+
+  plotList = list(p1, p2, p3)
+
+  if (length(rouban@x) == 2) {
+    createResultMatrix = function(x,y,func) {
+      matr = matrix(ncol = length(y), nrow = length(x))
+      counter = 1
+      for (i in 1:length(x)) {
+        for (j in 1:length(y)) {
+          matr[i, j] = func(c(x[i], y[j]))
+          counter = counter + 1
+        }
+      }
+      return(matr)
+    }
+    createResultVector = function(x,y,func) {
+      vect = c()
+      for (i in 1:length(x)) {
+        vect = c(vect, func(c(x[i], y[i])))
+      }
+      return (vect)
+    }
+
+    x1 = as.numeric(x[, 1])
+    x2 = as.numeric(x[, 2])
+
+    axes1 = seq(rouban@lower[1], rouban@upper[1], length=400)
+    axes2 = seq(rouban@lower[2], rouban@upper[2], length=400)
+
+    matr = createResultMatrix(axes1, axes2, f)
+
+    z = createResultVector(x1,x2,f)
+
+    p <- plot_ly(x=axes1, y=axes2, z=matr) %>%
+      add_surface() %>%
+      add_trace(type="scatter3d", mode="lines", x=x1, y=x2, z=z,
+                name="path", line=list(shape="spline", color="red", width=4))
+    plotList[[4]] = p
+  }
+
+  subplot(plotList[[1]], plotList[[2]], plotList[[3]], plotList[[4]], nrows=2) %>%
+    layout(title="Rouban's algorithm",scene = list(domain=list(x=c(0.5,1),y=c(0,0.5))))
+
+}
