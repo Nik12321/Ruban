@@ -1,13 +1,16 @@
-Package: Rouban
+Package: SAC
 Title: Global minimum / maximum search using coordinate averaging method
-Version: 0.0.4
+Version: 1.0.0
 Authors@R: person("Nikita", "Timofeev", email = "crashik11@yandex.ru", role = c("aut", "cre"))
 Description: What the package does (one paragraph).
 Depends: R (>= 3.1.1)
 Imports:
   stats (>= 0.0.1),
   utils (>= 0.0.1),
-  methods (>= 0.1.1)
+  methods (>= 0.1.1),
+  plotly (>= 4.1.0),
+  magrittr(>= 1.2.0),
+  dplyr(>= 0.8.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true

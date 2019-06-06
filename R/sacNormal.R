@@ -1,8 +1,7 @@
-##--------------------------------------------------------------------##
-##                      Global optimization method                    ##
-##                              based on                              ##
-##     the selective averaging coordinate  with restrictions          ##
-##--------------------------------------------------------------------##
+#-------------------------------------------------------------------#
+#           The algorithm of selective averaging of coordinates,    #
+#       the result of which is a set of main parameters             #
+#-------------------------------------------------------------------#
 
 #' Search for extremum value using global optimization method based on the selective averaging coordinate  with restrictions.
 #'
@@ -32,48 +31,43 @@
 #' z<-c(z, 6*(abs(x[1]+6))^0.6 + 6*(abs(x[2]-6)^0.9))
 #' return(min(z))
 #' }
-#' x<-Rouban(x=c(10,10),
+#' x<-sacNormal(x=c(10,10),
 #' delta=c(20,20),
 #' lower=c(-10,-10),
 #' upper = c(30,30),
 #' fitness = f,
-#' n=500,
-#' y=1,
-#' q=2,
-#' s=100,
-#' e=0.0001,
-#' r=2,
-#' kernelType = "kernelExponential")
+#' n=500)
 #' summary(x)
-extRouban <- function(x,
-                   delta,
-                   fitness,
-                   lower,
-                   upper,
-                   n = 500,
-                   e = 0.001,
-                   M = 1000,
-                   y = 1,
-                   q = 2,
-                   kernelType = "kernelExponential",
-                   r = 2,
-                   s = 100) {
+sacNormal <- function(type = c("sacNormal", "sacExtended", "sacIterative"),
+                      x,
+                      delta,
+                      fitness,
+                      lower,
+                      upper,
+                      n = sacControl(type)$n,
+                      e = sacControl(type)$e,
+                      M = sacControl(type)$M,
+                      y = sacControl(type)$y,
+                      q = sacControl(type)$q,
+                      kernelType = sacControl(type)$kernelType,
+                      r = sacControl(type)$r,
+                      s = sacControl(type)$s) {
   if (all.equal(x, as.double(x), check.attributes = FALSE) != TRUE
       || testOnNaN(x))
-    stop("Incorrect value of x. x must be numeric vector")
+    stop("Incorrect value of X. X must be numeric vector.")
   if (all.equal(delta, as.double(delta), check.attributes = FALSE) != TRUE
       || testOnNaN(delta))
-    stop("Incorrect value of delta. delta must be numeric vector")
+    stop("Incorrect value of delta. delta must be numeric vector.")
   if (all.equal(upper, as.double(upper), check.attributes = FALSE) != TRUE
       || testOnNaN(upper))
-    stop("Incorrect value of upper. upper must be numeric vector")
+    stop("Incorrect value of Upper. Upper must be numeric vector.")
   if (all.equal(lower, as.double(lower), check.attributes = FALSE) != TRUE
       || testOnNaN(lower))
-    stop("Incorrect value of lower. lower must be numeric vector")
+    stop("Incorrect value of Lower. Lower must be numeric vector.")
   if (length(x) != length(delta)
       || length(x) != length(lower)
       || length(x) != length(upper)) {
-    stop("Error. x, delta, upper and lower must have one size")
+    stop("Error. X, Delta, Upper and Lower must have one size")
   }
   if (all.equal(n, as.integer(n), check.attributes = FALSE) != TRUE
       || n < 1
@@ -119,17 +113,9 @@ extRouban <- function(x,
   allResults <- fitness(x)
 
   cols <- createColForDF(length(x))
-  resultObj  <- extResult(iterations = 0,
+  resultObj  <- normalResult(iterations = 0,
                         allX = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
                         allDelta = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
-                        uValues = data.frame(Iteration = 0, "number of uValue",  cols, stringsAsFactors=FALSE),
-
-                        testPoint = data.frame(Iteration = 0, "number of testPoint", cols, "fintess value", stringsAsFactors=FALSE),
-
-                        gminValues = data.frame(Iteration = 0,  "number of gmin", "value", stringsAsFactors=FALSE),
-                        pValues = data.frame(Iteration = 0,  "number of p", "value", stringsAsFactors=FALSE),
-                        pNormValues = data.frame(Iteration = 0, "number of pNorm", "value", stringsAsFactors=FALSE),
-
                         x = x,
                         delta = delta,
                         lower = lower,
@@ -141,7 +127,8 @@ extRouban <- function(x,
                         q = q,
                         kernelType = kernelType,
                         r = r,
-                        s = s
+                        s = s,
+                        func = fitness
   )
   if (kernelType == "kernelExponential" ||
       kernelType == "kernelHyperbolic" ||
@@ -163,26 +150,19 @@ extRouban <- function(x,
           b <- 1
         uValues[i, j] <- stats::runif(1, a, b) * 2 - 1
       }
-      resultObj @uValues = rbind(resultObj @uValues, addRowForDF(k, c(i, uValues[i,])))
       testX[i, ] <- x + delta * uValues[i, ]
       fValues[i] <- fitness(testX[i, ])
-      resultObj @testPoint = rbind(resultObj @testPoint, addRowForDF(k, c(i, testX[i,], fValues[i])))
     }
     gmin <- rep(0, n)
     for (i in 1:n) {
       a <- fValues[i] - min(fValues)
       b <- max(fValues) - min(fValues)
       gmin[i] <- a / b
-      resultObj @gminValues = rbind(resultObj @gminValues, addRowForDF(k, c(i, gmin[i])))
     }
-    for (i in 1:n) {
+    for (i in 1:n)
       p[i] <- kernelFunction(z = gmin[i], r = r, s = s)
-      resultObj @pValues = rbind(resultObj @pValues, addRowForDF(k, c(i, p[i])))
-    }
-    for (i in 1:n) {
+    for (i in 1:n)
       pNorm[i] <- p[i] / sum(p)
-      resultObj @pNormValues = rbind(resultObj @pNormValues, addRowForDF(k, c(i, pNorm[i])))
-    }
     for (i in 1:length(x))
       x[i] <- x[i] + delta[i] * sum(sapply(1:n, function(x) {
         uValues[x, i] * pNorm[x]
@@ -207,7 +187,25 @@ extRouban <- function(x,
   return(resultObj )
 }
 
-extResult <- methods::setClass("extResult", slots = c(iterations = "numeric",
+createColForDF <- function(ncols) {
+  cols <- vector("list", ncols)
+  for (i in 1:ncols) {
+    value <- paste0("x",i)
+    cols[i] <- value
+  }
+  return(cols)
+}
+
+addRowForDF <- function(k, x) {
+  new_col <- vector("list", length(x) + 1)
+  new_col[1] <- k
+  for (i in 2:(length(x) + 1)) {
+    new_col[i] <- x[i-1]
+  }
+  return(new_col)
+}
+
+normalResult <- methods::setClass("normalResult", slots = c(iterations = "numeric",
                                                   x = "numeric",
                                                   delta = "numeric",
                                                   lower = "numeric",
@@ -224,21 +222,17 @@ extResult <- methods::setClass("extResult", slots = c(iterations = "numeric",
                                                   allDelta = "data.frame",
                                                   fitnessValue = "numeric",
                                                   extremePoint = "numeric",
-                                                  uValues = "data.frame",
-                                                  testPoint = "data.frame",
-                                                  gminValues = "data.frame",
-                                                  pValues = "data.frame",
-                                                  pNormValues = "data.frame"
+                                                  func = 'function'
 ),
-package = "Rouban")
+package = "SAC")
 
-setMethod("summary", "extResult",
+setMethod("summary", "normalResult",
           function(object)
           {
-            cat(cli::rule(left = crayon::bold("Rouban Algorithm"),
+            cat(cli::rule(left = crayon::bold("SAC Algorithm"),
                           width = min(getOption("width"),40)), "\n\n")
             cat("+-----------------------------------+\n")
-            cat("|               Rouban              |\n")
+            cat("|                SAC normal         |\n")
             cat("+-----------------------------------+\n\n")
             cat(cli::rule(left = crayon::bold("Algorithm settings"),
                           width = min(getOption("width"),40)), "\n")
@@ -258,7 +252,7 @@ setMethod("summary", "extResult",
                           width = min(getOption("width"),40)), "\n")
             for (i in 2:nrow(object@allX)) {
               cat(cli::rule(left = crayon::bold("Iteration", (i-1)),
-                            width = min(getOption("width"),40)), ":\nFound point: ", as.numeric(x@allX[i,2:length(x@allX)]), "\nNew increment:", as.numeric(x@allDelta[i,2:length(x@allX)]),  "\n")
+                            width = min(getOption("width"),40)), ":\nFound point: ", as.numeric(object@allX[i,2:length(object@allX)]), "\nNew increment:", as.numeric(object@allDelta[i,2:length(object@allX)]),  "\n")
             }
             cat("+-----------------------------------+\n")
             cat(cli::rule(left = crayon::bold("Results"),
@@ -269,11 +263,78 @@ setMethod("summary", "extResult",
           }
 )
 
-setMethod("print", "extResult", function(x, ...) utils::str(x))
+setMethod("print", "normalResult", function(x, ...) utils::str(x))
 
-setMethod("show", "extResult",
-          function(object)
-          { cat("An object of class \"extResult\"\n")
+setMethod("show", "normalResult",
+          function(object) {
+            cat("An object of class \"normalResult\"\n")
             cat("Available slots:\n")
             print(slotNames(object))
           })
+
+plotSAC = function(sacObject) {
+  x = sacObject@allX[2:nrow(sacObject@allX), 2:ncol(sacObject@allX) ]
+  dx = sacObject@allDelta[2:nrow(sacObject@allDelta), 2:ncol(sacObject@allDelta) ]
+  f = sacObject@func
+
+  p1 = plotly::plot_ly(type="scatter", mode="lines", x=1:length(x[, 1]), y=as.numeric(x[, 1]), name="x_1")
+  p2 = plotly::plot_ly(type="scatter", mode="lines", x=1:length(dx[, 1]), y=as.numeric(dx[, 1]), name="dx_1")
+  if(ncol(dx) >= 2)
+    for(i in 2:ncol(x)) {
+      p1 = plotly::add_trace(p=p1, type="scatter", mode="lines" , name=paste0("x_", i),
+                     x=1:length(x[, i]), y=as.numeric(x[, i]))
+      p2 = plotly::add_trace(p=p2, type="scatter", mode="lines", name=paste0("dx_", i),
+                     x=1:length(dx[, i]), y=as.numeric(dx[, i]))
+
+    }
+
+  # printing y trace
+  y = c()
+  for (i in 1:nrow(x)) {
+    y = c(y, f(as.numeric(x[i, ])))
+  }
+  p3 = plotly::plot_ly(type="scatter", mode="lines", x=1:length(x[, 1]), y=y, name="min")
+
+  plotList = list(p1, p2, p3)
+
+  if (length(sacObject@x) == 2) {
+    createResultMatrix = function(x,y,func) {
+      matr = matrix(ncol = length(y), nrow = length(x))
+      counter = 1
+      for (i in 1:length(x)) {
+        for (j in 1:length(y)) {
+          matr[i, j] = func(c(x[i], y[j]))
+          counter = counter + 1
+        }
+      }
+      return(matr)
+    }
+    createResultVector = function(x,y,func) {
+      vect = c()
+      for (i in 1:length(x)) {
+        vect = c(vect, func(c(x[i], y[i])))
+      }
+      return (vect)
+    }
+
+    x1 = as.numeric(x[, 1])
+    x2 = as.numeric(x[, 2])
+
+    axes1 = seq(sacObject@lower[1], sacObject@upper[1], length=400)
+    axes2 = seq(sacObject@lower[2], sacObject@upper[2], length=400)
+
+    matr = createResultMatrix(axes1, axes2, f)
+
+    z = createResultVector(x1,x2,f)
+
+    p <- plotly::plot_ly(x=axes1, y=axes2, z=matr) %>%
+      plotly::add_surface() %>%
+      plotly::add_trace(type="scatter3d", mode="lines", x=x1, y=x2, z=z,
+                name="path", line=list(shape="spline", color="red", width=4))
+    plotList[[4]] = p
+  }
+
+  plotly::subplot(plotList[[1]], plotList[[2]], plotList[[3]], plotList[[4]], nrows=2) %>%
+    plotly::layout(title = "sac normal algorithm", scene = list(domain=list(x=c(0.5,1), y=c(0,0.5))))
+
+}

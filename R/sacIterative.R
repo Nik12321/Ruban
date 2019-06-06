@@ -1,7 +1,7 @@
 ##--------------------------------------------------------------------##
 ##                          Function for the                          ##
 ##                  selection of optimal parameters                   ##
-##                        for Rouban function                         ##
+##                        for SAC function                         ##
 ##--------------------------------------------------------------------##
 
 #' Search for extremum value using global optimization method based on the selective averaging coordinate  with restrictions.
@@ -32,32 +32,25 @@
 #' z<-c(z, 6*(abs(x[1]+6))^0.6 + 6*(abs(x[2]-6)^0.9))
 #' return(min(z))
 #' }
-#' x<-iterativeRouban(x=c(10,10),
+#' x<-sacIterative(x=c(10,10),
 #' delta=c(20,20),
 #' lower=c(-10,-10),
 #' upper = c(30,30),
-#' fitness = f,
-#' n=500,
-#' y=1,
-#' q=2,
-#' s=100,
-#' e=0.0001,
-#' r=2,
-#' kernelType = "kernelExponential")
+#' fitness = f)
 #' summary(x)
-iterativeRouban <- function(x,
-                   delta,
-                   fitness,
-                   lower,
-                   upper,
-                   n = 500,
-                   e = 0.001,
-                   M = 1000,
-                   y = 1,
-                   q = 2,
-                   kernelType = "kernelExponential",
-                   r = 2,
-                   s = 100) {
+sacIterative <- function(type = c("sacNormal", "sacExtended", "sacIterative"),
+                         delta,
+                         fitness,
+                         lower,
+                         upper,
+                         n = sacControl(type)$n,
+                         e = sacControl(type)$e,
+                         M = sacControl(type)$M,
+                         y = sacControl(type)$y,
+                         q = sacControl(type)$q,
+                         kernelType = sacControl(type)$kernelType,
+                         r = sacControl(type)$r,
+                         s = sacControl(type)$s) {
   if (all.equal(x, as.double(x), check.attributes = FALSE) != TRUE
       || testOnNaN(x))
     stop("Incorrect value of x. x must be numeric vector")
@@ -119,7 +112,7 @@ iterativeRouban <- function(x,
   allResults <- fitness(x)
 
   cols <- createColForDF(length(x))
-  resultObj  <- sResult(iterations = 0,
+  resultObj  <- normalResult(iterations = 0,
                         allX = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
                         allDelta = data.frame(Iteration = 0,  cols, stringsAsFactors=FALSE),
                         x = x,
@@ -133,7 +126,8 @@ iterativeRouban <- function(x,
                         q = q,
                         kernelType = kernelType,
                         r = r,
-                        s = s
+                        s = s,
+                        func = fitness
   )
   if (kernelType == "kernelExponential" ||
       kernelType == "kernelHyperbolic" ||
@@ -147,7 +141,7 @@ iterativeRouban <- function(x,
     ITERATION <- readline()
   if (ITERATION == "Y")
     cat(cli::rule(left = crayon::bold("Detailed process"),
-                  width = min(getOption("width"),40)), "\n")
+                  width = min(getOption("width"), 40)), "\n")
   while (k < M) {
     pastDelta <- delta
     if (ITERATION == "Y") {
@@ -290,5 +284,5 @@ iterativeRouban <- function(x,
   resultObj @iterations <- k
   resultObj @extremePoint <- allX[which.min(allResults), ]
   resultObj @fitnessValue <- allResults[which.min(allResults)]
-  return(resultObj )
+  return(resultObj)
 }
