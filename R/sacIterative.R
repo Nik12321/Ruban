@@ -193,7 +193,7 @@ sacIterative <- function(type = c("sacNormal", "sacExtended", "sacIterative"),
                     width = min(getOption("width"),40)), "\n")
     for (i in 1:n) {
       a <- fValues[i] - min(fValues)
-      b <- max(fValues) - min(fValues)
+      b <- max(fValues) - min(fValues) + 0.0000000000000001
       gmin[i] <- a / b
       if (ANSWER == "Y") {
         cat(paste0("gmin (n = ", i, ") = "), gmin[i], "\n")

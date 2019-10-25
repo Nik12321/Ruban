@@ -166,7 +166,7 @@ sacExtended<- function(type = c("sacNormal", "sacExtended", "sacIterative"),
     gmin <- rep(0, n)
     for (i in 1:n) {
       a <- fValues[i] - min(fValues)
-      b <- max(fValues) - min(fValues)
+      b <- max(fValues) - min(fValues) + 0.0000000000000001
       gmin[i] <- a / b
       resultObj @gminValues = rbind(resultObj @gminValues, addRowForDF(k, c(i, gmin[i])))
     }
