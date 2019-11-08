@@ -12,7 +12,7 @@ sacControl <- function(...)
   args <- list(...)
 
   if(length(args) == 1 && is.null(names(args))) {
-    arg <- args[[1]]
+    arg <- args[[1]][1]
     switch(mode(arg),
            list = args <- arg,
            character = return(.sac.default[[arg]]),

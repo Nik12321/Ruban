@@ -39,6 +39,7 @@
 #' fitness = f)
 #' summary(x)
 sacIterative <- function(type = c("sacNormal", "sacExtended", "sacIterative"),
+                         x,
                          delta,
                          fitness,
                          lower,
